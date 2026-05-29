@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod
+*.pyc
+.env
+.git
+venv/
+.venv/
+*.local
+*.local.json
+inventory.json
