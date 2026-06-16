@@ -1,7 +1,3 @@
-# Fetch one app_id and decrypt it. Output: one decrypted config to stdout
-# Loop the range, build a dict of all current configs. Output: full inventory
-# Save the inventory to disk. Output: state.json
-# Format the diff for humans (added by ID, modified field by field)
 
 import os
 import time
@@ -71,61 +67,64 @@ def notify_discord(message):
         print(f"[!] discord notify failed: {e}")
 
 # main
+if __name__ == '__main__':
 
-inventory = {}
-old_state = {}
+    inventory = {}
+    old_state = {}
 
-if os.path.exists("state.json"):
-    with open("state.json") as f:
-        old_state = json.load(f)
+    if os.path.exists("state.json"):
+        with open("state.json") as f:
+            old_state = json.load(f)
 
-print(f"[*] loaded previous state: {len(old_state)} deployments")
+    print(f"[*] loaded previous state: {len(old_state)} deployments")
 
-if FETCH:
+    if FETCH:
+        for app_id in range(1, 51):
+            try:
+                r = requests.get(URL, params={"app_id": app_id})
+                data = r.json()
+                    
+                if data.get("code") == 200:
 
-    for app_id in range(1, 51):
-        r = requests.get(URL, params={"app_id": app_id})
-        data = r.json()
-        
-        if data.get("code") == 200:
+                    config = load_config(data["data"])
+                    inventory[str(config["id"])] = config
+                    print(f"#{config['id']:>3} {config['sn']:<14} {config['country']}")
 
-            config = load_config(data["data"])
-            inventory[str(config["id"])] = config
-            print(f"#{config['id']:>3} {config['sn']:<14} {config['country']}")
+                time.sleep(0.3)
 
-        time.sleep(0.3)
+            except (requests.RequestException, ValueError) as e:
+                print(f"Error: {e}")
 
-    print(f"\n[*] {len(inventory)} deployments found")
+        print(f"\n[*] {len(inventory)} deployments found")
 
-else:
+    else:
+        inventory = old_state.copy()
+        print(f"[*] using cached state ({len(inventory)} deployments), no fetch")
 
-    inventory = old_state.copy()
-    print(f"[*] using cached state ({len(inventory)} deployments), no fetch")
+    old_ids = set(old_state.keys())
+    new_ids = set(inventory.keys())
 
-old_ids = set(old_state.keys())
-new_ids = set(inventory.keys())
+    added = sorted(new_ids - old_ids, key=int)
+    removed = sorted(old_ids - new_ids, key=int)
 
-added = sorted(new_ids - old_ids, key=int)
-removed = sorted(old_ids - new_ids, key=int)
+    modified = []
 
-modified = []
+    for id_ in sorted(old_ids & new_ids, key=int):
 
-for id_ in sorted(old_ids & new_ids, key=int):
+        if tracked(old_state[id_]) != tracked(inventory[id_]):
+            modified.append(id_)
 
-    if tracked(old_state[id_]) != tracked(inventory[id_]):
-        modified.append(id_)
+    report = build_report(added, removed, modified, inventory, old_state)
 
-report = build_report(added, removed, modified, inventory, old_state)
+    if report is None:
+        print("[=] no changes")
 
-if report is None:
-    print("[=] no changes")
+    else:
+        print(report)
+        notify_discord(report)
 
-else:
-    print(report)
-    notify_discord(report)
+    if FETCH:
 
-if FETCH:
-
-    with open("state.json", "w") as f:
-        json.dump(inventory, f, indent=2, ensure_ascii=False)
-    print("[*] state saved to state.json")
+        with open("state.json", "w") as f:
+            json.dump(inventory, f, indent=2, ensure_ascii=False)
+        print("[*] state saved to state.json")

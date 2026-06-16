@@ -17,7 +17,7 @@ pip install -r requirements.txt
 ### Quick start
 
 ```bash
-python tracker-cron.py
+python tracker.py
 ```
 
 The first run pulls every config the backend returns for `app_id` 1 to 50 and writes them all to `state.json`. On subsequent runs the script diffs against the saved state and reports added, removed, and modified deployments.
@@ -35,7 +35,7 @@ python decrypt_getapp.py
 
 The `data` argument to `load_config` is the `data` field of a full `/getApp` response: the `{s, k, d}` object that carries the encrypted payload and the keys to undo it.
 
-#### `tracker-cron.py`
+#### `tracker.py`
 
 The polling tracker. Iterates `app_id` 1..50 at the configured deployment, decrypts each response with `load_config`, and saves the inventory to `state.json`. On each run after the first, it diffs against the saved state and prints a report of what changed. Designed to run on a schedule.
 
@@ -47,7 +47,7 @@ Batch decrypter. If you have a `configs/` directory full of saved raw `/getApp?a
 
 #### Target hostname
 
-The default target is `transportstyrelsen-biljett.top`. To point at a different deployment of the same kit family, edit the `URL` constant at the top of `tracker-cron.py`:
+The default target is `transportstyrelsen-biljett.top`. To point at a different deployment of the same kit family, edit the `URL` constant at the top of `tracker.py`:
 
 ```python
 URL = "https://your-target-hostname/getApp"
@@ -55,7 +55,7 @@ URL = "https://your-target-hostname/getApp"
 
 #### `app_id` range
 
-The default range is 1 to 50. That covers the operator's inventory at the time of writing with headroom. If you're tracking a different deployment or the inventory grows, adjust the `range()` call in `tracker-cron.py`.
+The default range is 1 to 50. That covers the operator's inventory at the time of writing with headroom. If you're tracking a different deployment or the inventory grows, adjust the `range()` call in `tracker.py`.
 
 #### Discord notifications
 
@@ -63,10 +63,10 @@ If you're using this as a cronjob to track an active phishing family, you'll pro
 
 ```bash
 export TRACKER_WEBHOOK_URL="https://discord.com/api/webhooks/..."
-python tracker-cron.py
+python tracker.py
 ```
 
-If you'd rather not use an env var, you can hardcode the URL directly into the script. Find this line near the top of `tracker-cron.py`:
+If you'd rather not use an env var, you can hardcode the URL directly into the script. Find this line near the top of `tracker.py`:
 
 ```python
 WEBHOOK_URL = os.environ.get("TRACKER_WEBHOOK_URL", "")
@@ -85,7 +85,7 @@ With no webhook configured at all, the change report just prints to stdout. The 
 Twice daily is what produced the writeup's timeline. Example crontab line:
 
 ```
-0 7,19 * * *  cd /path/to/duoyu-tracker && /usr/bin/python tracker-cron.py >> tracker.log 2>&1
+0 7,19 * * *  cd /path/to/duoyu-tracker && /usr/bin/python tracker.py >> tracker.log 2>&1
 ```
 
 Cron strips most environment variables by default, so if you're using `TRACKER_WEBHOOK_URL` you'll need to set it inside the cronjob itself or in a wrapper script. The wrapper approach looks like:
@@ -94,7 +94,7 @@ Cron strips most environment variables by default, so if you're using `TRACKER_W
 #!/usr/bin/env bash
 export TRACKER_WEBHOOK_URL="https://discord.com/api/webhooks/..."
 cd /path/to/duoyu-tracker
-/usr/bin/python tracker-cron.py
+/usr/bin/python tracker.py
 ```
 
 Then point cron at the wrapper script.

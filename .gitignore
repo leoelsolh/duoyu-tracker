@@ -4,7 +4,11 @@ __pycache__/
 .env
 .git
 venv/
+inventory.json
+state.json
+decrypted/
+getapp_response.json
 .venv/
 *.local
 *.local.json
-inventory.json
+*.log
