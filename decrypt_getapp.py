@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+#
+# Decrypt the response from the '/getApp?app_id=N' endpoint.
+# Dump the deployment inventory
+
 import base64
 import json
 from hashlib import sha256
